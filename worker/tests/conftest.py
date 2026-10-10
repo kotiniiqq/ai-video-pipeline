@@ -71,3 +71,41 @@ def wait_job(client):
             time.sleep(0.1)
         raise AssertionError(f"job {job_id} still running after {timeout}s")
     return wait
+
+
+@pytest.fixture
+def make_av(shared):
+    """A moving clip with a tone; `lufs` normalises the audio to that integrated loudness."""
+    def make(name, duration=4.0, lufs=None, volume=0.05):
+        out = os.path.join(shared, name)
+        af = f"loudnorm=I={lufs}:TP=-1:LRA=11" if lufs is not None else f"volume={volume}"
+        _ffmpeg("-f", "lavfi", "-i", "testsrc2=size=1280x720:rate=30", "-f", "lavfi",
+                "-i", f"sine=frequency=330:sample_rate=48000:duration={duration}",
+                "-t", str(duration), "-af", af, "-ar", "48000", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                "-c:a", "aac", "-shortest", out)
+        return out
+    return make
+
+
+class FakeFaces:
+    """Stands in for the YuNet/SFace backend: a fixed number of faces and a fixed similarity."""
+
+    def __init__(self, count=1, similarity=0.9):
+        self.count, self.sim = count, similarity
+
+    def detect(self, img):
+        from app.faces import Face
+        return [Face(100.0 * i, 100.0, 200.0, 200.0, 0.99, None) for i in range(self.count)]
+
+    def similarity(self, img_a, face_a, img_b, face_b):
+        return self.sim
+
+
+@pytest.fixture
+def fake_faces():
+    from app import faces
+
+    def use(count=1, similarity=0.9):
+        faces.set_backend(FakeFaces(count, similarity))
+    yield use
+    faces.set_backend(None)
