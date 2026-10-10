@@ -15,7 +15,7 @@ export interface Shot {
   image_path?: string | null; job_id?: string | null; qc?: Record<string, unknown> | null;
 }
 export interface StartResult { ok: boolean; job_id?: string; image_path?: string; qc?: unknown; source?: unknown; reason?: string; detail?: string; permanent?: boolean; cost_usd?: number }
-export interface Job { status: string; result?: { path: string }; error?: string; permanent?: boolean }
+export interface Job { status: string; result?: { path: string; cost_usd?: number }; error?: string; permanent?: boolean }
 export interface ClipQc { status: string; reasons?: string[] }
 export interface Step { action: 'none' | 'wait' | 'qc' | 'fallback'; update: Record<string, unknown> }
 
@@ -57,7 +57,9 @@ export default function main(items: Item[], _ctx: Ctx): Item[] {
     const step = json.phase === 'start' ? afterStart(shot, json.start as StartResult)
       : json.phase === 'job' ? afterJob(shot, json.job as Job)
       : afterQc(shot, json.job as Job, json.qc as ClipQc);
-    const cost = Number((json.start as StartResult | undefined)?.cost_usd ?? 0);
+    // money spent in this step: the picture when a shot starts, the render once its QC result is saved
+    const cost = json.phase === 'start' ? Number((json.start as StartResult | undefined)?.cost_usd ?? 0)
+      : json.phase === 'qc' ? Number((json.job as Job | undefined)?.result?.cost_usd ?? 0) : 0;
     return { json: { shot_id: shot.id, shot, job: json.job ?? null, action: step.action, update: step.update, cost_usd: cost } };
   });
 }

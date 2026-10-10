@@ -239,3 +239,15 @@ test('a worker error body becomes the retry reason; job and cost travel with the
   const [started] = step(one({ phase: 'start', shot: baseShot, start: { ok: true, job_id: 'j', image_path: '/i', cost_usd: 0.25 } }), ctx);
   assert.equal(started.json.cost_usd, 0.25);
 });
+
+test('the cost of a finished render job is recorded once, when its QC result is saved', async () => {
+  const { default: step } = await import('../code/shot-step.ts');
+  const shot = { ...baseShot, id: 4, status: 'generating', job_id: 'j' };
+  const job = { status: 'done', result: { path: '/s/c.mp4', cost_usd: 0.25 } };
+  const [polled] = step(one({ phase: 'job', shot, job }), ctx);
+  assert.equal(polled.json.cost_usd, 0); // not yet: the QC step that follows saves the shot
+  for (const qc of [{ status: 'PASS' }, { status: 'FAIL', reasons: ['black'] }]) {
+    const [checked] = step(one({ phase: 'qc', shot, job, qc }), ctx);
+    assert.equal(checked.json.cost_usd, 0.25, qc.status); // spent either way
+  }
+});

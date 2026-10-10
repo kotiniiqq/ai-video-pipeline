@@ -74,7 +74,7 @@ Every provider response carries its cost, which is stored per video and per shot
   −14 LUFS reached even for audio with sharp peaks), subtitles, thumbnails, background jobs including
   a job whose process died, every demo provider, and every live provider against a mock transport
   (request shapes, JSON wrapped in prose or code fences, retries on 429/5xx, missing keys).
-- **91 TypeScript tests**: every Code-node module (script and storyboard checks, the shot state
+- **92 TypeScript tests**: every Code-node module (script and storyboard checks, the shot state
   machine, stage retries, titles, segment planning), bundles run under the preamble n8n puts in
   front of every Code node, plus the deploy kit's own suite against a mock n8n API.
 - **End to end on a real n8n 2.40.6** (`npm run e2e`): a video goes from the webhook to `ready`
