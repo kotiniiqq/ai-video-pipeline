@@ -37,6 +37,8 @@ CREATE TABLE shots (
   query       text,
   status      text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'generating', 'done', 'fallback', 'failed')),
   attempts    int NOT NULL DEFAULT 0,
+  fallback    boolean NOT NULL DEFAULT false,
+  last_error  text,
   job_id      text,
   image_path  text,
   asset_path  text,
