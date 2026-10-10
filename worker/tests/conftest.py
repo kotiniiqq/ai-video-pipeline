@@ -56,3 +56,18 @@ def make_image(shared):
         _ffmpeg("-f", "lavfi", "-i", f"testsrc2=size={w}x{h}", "-frames:v", "1", out)
         return out
     return make
+
+
+@pytest.fixture
+def wait_job(client):
+    import time
+
+    def wait(job_id, timeout=120):
+        until = time.time() + timeout
+        while time.time() < until:
+            job = client.get(f"/jobs/{job_id}").json()
+            if job["status"] in ("done", "failed"):
+                return job
+            time.sleep(0.1)
+        raise AssertionError(f"job {job_id} still running after {timeout}s")
+    return wait
