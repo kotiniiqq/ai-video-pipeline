@@ -32,6 +32,7 @@ class FallbackReq(BaseModel):
     idx: int
     duration_s: float = Field(gt=0, le=15)
     out_dir: str
+    context: dict | None = Field(None, description="returned as is, so the caller can continue without a lookup")
 
 
 class ConcatReq(BaseModel):
@@ -78,8 +79,9 @@ def fallback(req: FallbackReq):
     media.inside_shared(req.image_path)
     out = os.path.join(req.out_dir, f"shot{req.idx:03d}_fallback.mp4")
     media.output_path(out)
-    return jobs.submit("kenburns", render.kenburns, image_path=req.image_path, out=out,
-                       duration_s=req.duration_s, move=MOVES[req.idx % len(MOVES)])
+    job = jobs.submit("kenburns", render.kenburns, image_path=req.image_path, out=out,
+                      duration_s=req.duration_s, move=MOVES[req.idx % len(MOVES)])
+    return {**job, "context": req.context}
 
 
 @router.post("/audio/concat")

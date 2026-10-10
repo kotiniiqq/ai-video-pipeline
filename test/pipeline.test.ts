@@ -230,3 +230,12 @@ test('error text is escaped and short', () => {
   assert.match(text, /video &lt;runner&gt;/);
   assert.ok(text.length <= 700 && text.includes('…'));
 });
+
+test('a worker error body becomes the retry reason; job and cost travel with the step', async () => {
+  const { default: step } = await import('../code/shot-step.ts');
+  assert.equal(afterStart(baseShot, { ok: false, detail: 'OpenRouter failed after 3 attempts' } as never).update.last_error, 'OpenRouter failed after 3 attempts');
+  const [out] = step(one({ phase: 'job', shot: { ...baseShot, id: 3, status: 'generating' }, job: { status: 'done', result: { path: '/s/x.mp4' } } }), ctx);
+  assert.deepEqual(out.json.job, { status: 'done', result: { path: '/s/x.mp4' } });
+  const [started] = step(one({ phase: 'start', shot: baseShot, start: { ok: true, job_id: 'j', image_path: '/i', cost_usd: 0.25 } }), ctx);
+  assert.equal(started.json.cost_usd, 0.25);
+});

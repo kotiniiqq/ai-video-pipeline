@@ -36,7 +36,9 @@ def test_each_attempt_writes_its_own_files(client, shared, wait_job):
 
 def test_fallback_renders_ken_burns_over_an_existing_image(client, shared, wait_job, make_image):
     r = client.post("/shots/fallback", json={"image_path": make_image("f.png"), "idx": 2, "duration_s": 3.0,
-                                             "out_dir": os.path.join(shared, "videos", "1", "shots")})
+                                             "out_dir": os.path.join(shared, "videos", "1", "shots"),
+                                             "context": {"shot_id": 9, "update": {"status": "generating"}}})
+    assert r.json()["context"] == {"shot_id": 9, "update": {"status": "generating"}}
     job = wait_job(r.json()["job_id"])
     assert job["status"] == "done" and abs(job["result"]["duration_s"] - 3.0) < 0.1
 

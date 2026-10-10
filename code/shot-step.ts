@@ -14,7 +14,7 @@ export interface Shot {
   id?: number; idx: number; status: string; attempts: number; fallback: boolean;
   image_path?: string | null; job_id?: string | null; qc?: Record<string, unknown> | null;
 }
-export interface StartResult { ok: boolean; job_id?: string; image_path?: string; qc?: unknown; source?: unknown; reason?: string; permanent?: boolean }
+export interface StartResult { ok: boolean; job_id?: string; image_path?: string; qc?: unknown; source?: unknown; reason?: string; detail?: string; permanent?: boolean; cost_usd?: number }
 export interface Job { status: string; result?: { path: string }; error?: string; permanent?: boolean }
 export interface ClipQc { status: string; reasons?: string[] }
 export interface Step { action: 'none' | 'wait' | 'qc' | 'fallback'; update: Record<string, unknown> }
@@ -35,7 +35,7 @@ export function afterStart(shot: Shot, res: StartResult): Step {
     return { action: 'none', update: { status: 'generating', job_id: res.job_id, image_path: res.image_path, source: res.source ?? null,
                                        qc: { image: res.qc }, last_error: null } };
   }
-  return retry(shot, res.reason ?? 'shot start failed', res.permanent ?? false, res.image_path ?? shot.image_path ?? null);
+  return retry(shot, res.reason ?? res.detail ?? 'shot start failed', res.permanent ?? false, res.image_path ?? shot.image_path ?? null);
 }
 
 export function afterJob(shot: Shot, job: Job): Step {
@@ -57,6 +57,7 @@ export default function main(items: Item[], _ctx: Ctx): Item[] {
     const step = json.phase === 'start' ? afterStart(shot, json.start as StartResult)
       : json.phase === 'job' ? afterJob(shot, json.job as Job)
       : afterQc(shot, json.job as Job, json.qc as ClipQc);
-    return { json: { shot_id: shot.id, shot, action: step.action, update: step.update } };
+    const cost = Number((json.start as StartResult | undefined)?.cost_usd ?? 0);
+    return { json: { shot_id: shot.id, shot, job: json.job ?? null, action: step.action, update: step.update, cost_usd: cost } };
   });
 }
