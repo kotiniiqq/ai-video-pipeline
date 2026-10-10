@@ -51,3 +51,16 @@ def test_audio_concat_reports_where_each_part_starts(client, shared, make_tone):
     assert [round(p["start_s"], 2) for p in body["parts"]] == [0.0, 1.4]
     assert [round(p["duration_s"], 1) for p in body["parts"]] == [1.0, 2.0]
     assert abs(media.duration(out) - 3.4) < 0.05
+
+
+def test_injected_faults_exercise_retries_and_fallback(client, shared, wait_job, monkeypatch):
+    """DEMO_FAULTS makes demo runs fail on purpose, so the retry and fallback paths get exercised end to end."""
+    from app import config
+    monkeypatch.setattr(config, "DEMO_FAULTS", True)
+    first = start(client, shared, "still", idx=4, attempt=0)
+    assert first["ok"] is False and "injected" in first["reason"] and not first["permanent"]
+    assert start(client, shared, "still", idx=4, attempt=2)["ok"] is True
+    clip = start(client, shared, "ai", idx=10, attempt=0)
+    job = wait_job(clip["job_id"])
+    assert job["status"] == "failed" and "injected" in job["error"]
+    assert start(client, shared, "ai", idx=7, attempt=0)["ok"] is True  # other shots are untouched

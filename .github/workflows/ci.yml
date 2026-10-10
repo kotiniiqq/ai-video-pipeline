@@ -28,6 +28,8 @@ jobs:
     needs: [worker, workflows]
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      DEMO_FAULTS: "1"   # some shots fail on purpose, so retries and fallbacks run for real
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

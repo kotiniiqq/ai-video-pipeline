@@ -9,7 +9,7 @@ import tempfile
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from . import jobs, media, qc, render, routes_providers
+from . import config, jobs, media, qc, render, routes_providers
 from .providers import get_providers
 from .providers.base import ProviderError
 
@@ -41,8 +41,15 @@ class ConcatReq(BaseModel):
     gap_s: float = 0.35
 
 
+def _injected_clip_failure(**_):
+    raise RuntimeError("injected fault: clip generation failed (DEMO_FAULTS)")
+
+
 @router.post("/shots/start")
 def start(req: StartReq):
+    faults = config.DEMO_FAULTS and config.MODE == "demo"
+    if faults and req.idx % 4 == 0 and req.attempt < 2:
+        return {"ok": False, "reason": "injected fault: image rejected by QC (DEMO_FAULTS)", "permanent": False, "cost_usd": 0.0}
     providers = get_providers()
     stem = os.path.join(req.out_dir, f"shot{req.idx:03d}_a{req.attempt}")
     cost = 0.0
@@ -64,7 +71,9 @@ def start(req: StartReq):
         return {"ok": False, "reason": "; ".join(check["reasons"]), "image_path": picture.path,
                 "qc": check, "permanent": False, "cost_usd": cost}
 
-    if req.kind == "ai":
+    if faults and req.kind == "ai" and req.idx % 5 == 0:
+        job = jobs.submit("clip", _injected_clip_failure)
+    elif req.kind == "ai":
         job = jobs.submit("clip", routes_providers._clip_job, image_path=picture.path, prompt=req.prompt,
                           duration_s=req.duration_s, out=stem + ".mp4")
     else:

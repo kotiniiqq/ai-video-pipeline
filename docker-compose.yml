@@ -54,6 +54,7 @@ services:
     environment:
       SHARED_DIR: /data/shared
       MODE: ${MODE:-demo}
+      DEMO_FAULTS: ${DEMO_FAULTS:-}
     ports: ["127.0.0.1:8000:8000"]
     volumes:
       - shared:/data/shared

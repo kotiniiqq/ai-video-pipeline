@@ -5,6 +5,8 @@
  * Asks for a video through the webhook, follows it through every stage, and checks the result:
  * final QC passed (length matches the narration, -14 LUFS, no black), 1280x720 with sound,
  * subtitles cover the narration, thumbnail exists, every shot finished, demo cost is zero.
+ * With DEMO_FAULTS=1 (set for the worker too) some shots fail on purpose; the run must still finish,
+ * with retried shots and at least one Ken Burns fallback.
  */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -64,7 +66,11 @@ assert.deepEqual([thumb.body.width, thumb.body.height], [1280, 720]);
 assert.equal(status.shots_finished, status.shots_total);
 assert.ok(status.shots_total >= 7);
 assert.equal(status.cost_usd, 0);
+if (process.env.DEMO_FAULTS) { // injected failures: retries and the fallback path must have run and recovered
+  assert.ok(status.shots_retried >= 2, `expected retried shots, got ${status.shots_retried}`);
+  assert.ok(status.shots_fallback >= 1, `expected a fallback shot, got ${status.shots_fallback}`);
+}
 assert.ok(status.title && status.description.includes('Sources:'), 'title and description');
 
-console.log(`\nok: "${status.title}" — ${probe.body.duration}s, ${status.shots_total} shots (${status.shots_fallback} fallback), `
+console.log(`\nok: "${status.title}" — ${probe.body.duration}s, ${status.shots_total} shots (${status.shots_retried} retried, ${status.shots_fallback} fallback), `
   + `${cues.length} subtitle cues, ${status.final_qc.lufs} LUFS, in ${((Date.now() - started) / 1000).toFixed(0)}s`);

@@ -4,6 +4,8 @@ import os
 SHARED_DIR = os.path.realpath(os.getenv("SHARED_DIR", "/data/shared"))
 MODE = os.getenv("MODE", "demo").strip().lower()
 MODELS_DIR = os.getenv("MODELS_DIR", "/models")
+# Demo only: fail some shots on purpose so retries and fallbacks run (see shots.py)
+DEMO_FAULTS = os.getenv("DEMO_FAULTS", "").strip().lower() in ("1", "true", "yes")
 
 RENDER_W, RENDER_H = 1280, 720
 RENDER_FPS = 30
