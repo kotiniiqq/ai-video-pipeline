@@ -73,3 +73,24 @@ def test_render_routes_return_jobs(client, wait_job, shared, make_image):
 def test_render_rejects_output_outside_shared(client, make_image):
     r = client.post("/render/kenburns", json={"image_path": make_image("q.png"), "out": "/tmp/x.mp4", "duration_s": 2.0})
     assert r.status_code == 422
+
+
+def test_master_with_cuts_before_fades(shared, make_clip, make_tone):
+    """A cut (concat) followed by a fade (xfade): both inputs of xfade must share a timebase."""
+    segs = [{"path": make_clip(f"s{i}.mp4", 2.0), "duration_s": 2.0, "transition": t}
+            for i, t in enumerate(["cut", "cut", "fade", "cut", "cut"])]
+    voice = make_tone("v.wav", 10.0, volume=0.4)
+    out = os.path.join(shared, "mixed.mp4")
+    render.master(segs, voice, out)
+    streams = stream_durations(out)
+    assert abs(streams["video"] - 10.0) < 0.15, streams
+
+
+def test_master_reaches_target_loudness_even_with_sharp_peaks(shared, make_clip):
+    """Speech has peaks far above its average level; linear gain alone cannot reach -14 LUFS then."""
+    voice = os.path.join(shared, "peaky.wav")
+    expr = "0.05*sin(2*PI*220*t)+if(lt(mod(t\,1)\,0.01)\,0.95*sin(2*PI*1000*t)\,0)"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"aevalsrc='{expr}':s=48000:d=6", voice], check=True)
+    segs = [{"path": make_clip("p.mp4", 6.0), "duration_s": 6.0, "transition": "cut"}]
+    res = render.master(segs, voice, os.path.join(shared, "peaky.mp4"))
+    assert abs(res["lufs"] - (-14)) <= 1.0, res

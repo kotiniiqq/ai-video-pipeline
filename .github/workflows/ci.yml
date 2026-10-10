@@ -1,0 +1,43 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Worker tests (in the worker image: FFmpeg, face models, Piper voice)
+        run: docker build --target test -t worker-test worker && docker run --rm worker-test
+
+  workflows:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test           # code-node modules, kit build/deploy against a mock n8n, typecheck
+      - run: npm run validate   # every workflow builds and passes the kit's rules
+
+  e2e:
+    needs: [worker, workflows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: docker compose up -d --build
+      - run: npm run setup
+      - run: npm run e2e
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --tail 200

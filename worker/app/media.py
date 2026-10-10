@@ -41,7 +41,9 @@ def run_ffmpeg(*args: str, timeout: int = 600) -> subprocess.CompletedProcess:
     out = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-y", *args],
                          capture_output=True, text=True, timeout=timeout)
     if out.returncode != 0:
-        raise RuntimeError(f"ffmpeg failed: {out.stderr.strip()[-600:]}")
+        lines = out.stderr.strip().splitlines()
+        causes = [ln for ln in lines if any(k in ln for k in ("needs to be", "do not match", "No such", "rror"))][:4]
+        raise RuntimeError("ffmpeg failed: " + " | ".join(causes or lines[-4:])[:800])
     return out
 
 

@@ -66,13 +66,32 @@ def music_bed(duration_s: float, out: str) -> dict:
     return {"path": dst, "duration_s": round(media.duration(dst), 3)}
 
 
+TRUE_PEAK = -1.5
+
+
+def _measure(src: str, target: float) -> dict:
+    log = media.run_ffmpeg("-i", src, "-af", f"loudnorm=I={target}:TP={TRUE_PEAK}:LRA=11:print_format=json",
+                           "-f", "null", "-").stderr
+    return json.loads(re.findall(r"\{[^{}]*\}", log)[-1])
+
+
 def _loudnorm_two_pass(src: str, dst: str, target: float) -> None:
-    """Measure, then normalise linearly: one-pass loudnorm drifts on short programmes."""
-    measure = media.run_ffmpeg("-i", src, "-af", f"loudnorm=I={target}:TP=-1.5:LRA=11:print_format=json",
-                               "-f", "null", "-").stderr
-    m = json.loads(re.findall(r"\{[^{}]*\}", measure)[-1])
+    """Measure, then normalise with one linear gain (no pumping).
+
+    Speech has peaks far above its average level; when the gain needed to reach the target would push
+    those peaks over the true-peak ceiling, loudnorm cannot stay linear and lands short of the target.
+    So the peaks are limited first, exactly to where the gain will put them at the ceiling.
+    """
+    m = _measure(src, target)
+    gain = target - float(m["input_i"])
+    ceiling = TRUE_PEAK - gain - 0.3  # headroom for the limiter's own overshoot
+    if float(m["input_tp"]) > ceiling:
+        limited = dst + ".limited.wav"
+        media.run_ffmpeg("-i", src, "-af", f"alimiter=limit={10 ** (ceiling / 20):.5f}:level=false:attack=1:release=50",
+                         "-ar", "48000", limited)
+        src, m = limited, _measure(limited, target)
     media.run_ffmpeg("-i", src, "-af",
-                     f"loudnorm=I={target}:TP=-1.5:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:"
+                     f"loudnorm=I={target}:TP={TRUE_PEAK}:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:"
                      f"measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}:"
                      f"linear=true", "-ar", "48000", dst)
 
@@ -94,22 +113,23 @@ def master(segments: list[dict], voice_path: str, out: str, music_path: str | No
             lengths.append(length)
 
         # Video: chain of xfade (fade) or concat (cut); a fade starts xfade seconds before the boundary
-        graph, label, run = [], "[0:v]", lengths[0]
+        # xfade needs constant-rate inputs on one timebase; concat loses the rate, so every input and
+        # every concat result is put back on FPS and 1/FPS
+        tb = f"settb=1/{FPS},fps={FPS}"  # fps last: it is what gives the link a constant rate
+        graph = [f"[{i}:v]{tb}[s{i}]" for i in range(len(clips))]
+        label, run = "[s0]", lengths[0]
         for i in range(1, len(clips)):
             nxt = f"[v{i}]"
             if segments[i - 1].get("transition", "fade") == "fade":
-                graph.append(f"{label}[{i}:v]xfade=transition=fade:duration={xfade}:offset={run - xfade:.3f}{nxt}")
+                graph.append(f"{label}[s{i}]xfade=transition=fade:duration={xfade}:offset={run - xfade:.3f}{nxt}")
                 run += lengths[i] - xfade
             else:
-                graph.append(f"{label}[{i}:v]concat=n=2:v=1:a=0{nxt}")
+                graph.append(f"{label}[s{i}]concat=n=2:v=1:a=0,{tb}{nxt}")
                 run += lengths[i]
             label = nxt
         video_only = os.path.join(tmp, "video.mp4")
         inputs = [a for c in clips for a in ("-i", c)]
-        if graph:
-            media.run_ffmpeg(*inputs, "-filter_complex", ";".join(graph), "-map", label, *VIDEO_OUT, video_only)
-        else:
-            media.run_ffmpeg("-i", clips[0], "-c", "copy", video_only)
+        media.run_ffmpeg(*inputs, "-filter_complex", ";".join(graph), "-map", label, *VIDEO_OUT, video_only)
 
         # Audio: music ducked under the voice (sidechain), then normalised as a whole
         mixed = os.path.join(tmp, "mix.wav")

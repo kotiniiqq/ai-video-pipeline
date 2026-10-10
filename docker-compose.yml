@@ -45,7 +45,9 @@ services:
       EXECUTIONS_DATA_MAX_AGE: "168"
 
   worker:
-    build: ./worker
+    build:
+      context: ./worker
+      target: base
     env_file:
       - path: .env
         required: false
