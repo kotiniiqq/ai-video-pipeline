@@ -63,3 +63,15 @@ test('bundles are self-contained: no import or require left', () => {
 test('bundling is deterministic', () => {
   assert.equal(bundleCode('test/fixtures/code/route-ticket.ts'), bundleCode('test/fixtures/code/route-ticket.ts'));
 });
+
+test('every pipeline module bundles self-contained and runs in the n8n sandbox shape', async () => {
+  const fs = await import('node:fs');
+  for (const f of fs.readdirSync('code').filter((x: string) => x.endsWith('.ts'))) {
+    assert.doesNotMatch(bundleCode(`code/${f}`), /\bimport\s|require\(/, f);
+  }
+  const [res] = await runInN8nShape(bundleCode('code/stage-result.ts'), [{ video: { status: 'queued', attempts: 0 }, outcome: { ok: true } }]);
+  assert.equal((res as any).status, "voice");
+  const [step] = await runInN8nShape(bundleCode('code/shot-step.ts'),
+    [{ phase: 'job', shot: { id: 1, idx: 0, status: 'generating', attempts: 0, fallback: false }, job: { status: 'running' } }]);
+  assert.equal((step as any).action, "wait");
+});
