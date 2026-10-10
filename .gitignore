@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.n8n-kit/
+backups/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+worker/.venv/
+data/

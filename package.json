@@ -1,0 +1,28 @@
+{
+  "name": "ai-video-pipeline",
+  "version": "0.1.0",
+  "description": "Documentary video pipeline: n8n workflows in TypeScript, a FastAPI/FFmpeg worker and Postgres. Runs offline in demo mode.",
+  "type": "module",
+  "private": true,
+  "author": "Kyrylo Kalashnyk",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "build": "tsx kit/cli.ts build --env compose",
+    "validate": "tsx kit/cli.ts validate",
+    "typecheck": "tsc --noEmit",
+    "kit": "tsx kit/cli.ts",
+    "setup": "tsx scripts/setup.ts",
+    "e2e": "tsx e2e/run.ts"
+  },
+  "dependencies": {
+    "@n8n/workflow-sdk": "0.36.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2"
+  }
+}

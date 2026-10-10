@@ -1,0 +1,12 @@
+{
+  "compose": {
+    "url": "http://localhost:5678",
+    "apiKeyEnv": "N8N_API_KEY",
+    "credentials": {
+      "pipeline-db": "pipelineDb000001"
+    },
+    "values": {
+      "workerUrl": "http://worker:8000"
+    }
+  }
+}
