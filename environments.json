@@ -6,7 +6,8 @@
       "pipeline-db": "pipelineDb000001"
     },
     "values": {
-      "workerUrl": "http://worker:8000"
+      "workerUrl": "http://worker:8000",
+      "sharedDir": "/data/shared"
     }
   }
 }

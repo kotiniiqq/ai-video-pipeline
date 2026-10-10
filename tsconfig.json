@@ -18,6 +18,7 @@
     "workflows",
     "test",
     "e2e",
-    "scripts"
+    "scripts",
+    "lib"
   ]
 }

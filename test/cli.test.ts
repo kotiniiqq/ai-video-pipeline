@@ -31,7 +31,8 @@ test('validate passes on the pipeline workflows', async () => {
 test('deploy --dry-run plans a create for every workflow and writes nothing', async () => {
   const r = await kit(['deploy', '--env', 'compose', '--dry-run'], { N8N_URL: mock.url, N8N_API_KEY: mock.apiKey });
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.equal((r.stdout.match(/ create/g) ?? []).length, listWorkflowSources().length);
+  const planned = r.stdout.split(/\r?\n/).find((l) => l.startsWith('planned:')) ?? '';
+  assert.equal((planned.match(/ create/g) ?? []).length, listWorkflowSources().length, planned);
   assert.equal(mock.store.size, 0);
 });
 
