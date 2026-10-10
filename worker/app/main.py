@@ -3,12 +3,13 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from . import config, jobs, media, qc, render
+from . import config, jobs, media, packaging, qc, render
 
 app = FastAPI(title="ai-video-pipeline worker")
 app.include_router(jobs.router)
 app.include_router(qc.router)
 app.include_router(render.router)
+app.include_router(packaging.router)
 
 
 @app.exception_handler(media.InputError)
