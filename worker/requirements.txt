@@ -1,0 +1,7 @@
+fastapi==0.115.*
+uvicorn[standard]==0.32.*
+httpx==0.28.*
+numpy==2.*
+opencv-python-headless==4.12.*
+pillow==11.*
+piper-tts==1.3.*

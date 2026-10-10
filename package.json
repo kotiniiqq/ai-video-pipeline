@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "kit": "tsx kit/cli.ts",
     "setup": "tsx scripts/setup.ts",
-    "e2e": "tsx e2e/run.ts"
+    "e2e": "tsx e2e/run.ts",
+    "test:worker": "docker build -q --target test -t aivp-worker-test worker && docker run --rm aivp-worker-test"
   },
   "dependencies": {
     "@n8n/workflow-sdk": "0.36.0",
