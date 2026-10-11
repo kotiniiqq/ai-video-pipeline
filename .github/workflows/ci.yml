@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Worker tests (in the worker image: FFmpeg, face models, Piper voice)
+      - name: "Worker tests (in the worker image: FFmpeg, face models, Piper voice)"
         run: docker build --target test -t worker-test worker && docker run --rm worker-test
 
   workflows:
