@@ -107,6 +107,11 @@ e2e/         the end-to-end run
 A design spec and a plan first, then test-first implementation task by task, then the end-to-end
 run on a real n8n, which is where the three bugs above surfaced.
 
+## Contact
+
+Feedback, ideas, job offers or custom projects (n8n, MCP, AI automation): [kotiniiqq@gmail.com](mailto:kotiniiqq@gmail.com).
+Bug reports and feature requests are welcome in [Issues](https://github.com/kotiniiqq/ai-video-pipeline/issues).
+
 ## License
 
 MIT
