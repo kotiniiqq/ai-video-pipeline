@@ -5,6 +5,8 @@ storyboard, generated and still shots with quality checks, a mastered mp4 with s
 a thumbnail. n8n workflows (written in TypeScript) run the stages; a FastAPI worker does the media
 work with FFmpeg and OpenCV. It runs end to end on a laptop **without any API keys**.
 
+<img src="https://raw.githubusercontent.com/kotiniiqq/ai-video-pipeline/main/docs/assets/overview.svg" width="640" alt="ai-video-pipeline flow">
+
 > Reference version of a video pipeline I am building for a client. That system is private; this
 > repo rebuilds its architecture from scratch, without the client's prompts, assets or channel. In
 > demo mode the narration text is generated from templates, the frames are synthetic and the voice
